@@ -1,22 +1,3 @@
-/** Connect Four
- *
- * Player 1 and 2 alternate turns. On each turn, a piece is dropped down a
- * column until a player gets four-in-a-row (horiz, vert, or diag) or until
- * board fills (tie)
- */
-
-// MODELS
-// Game.board: contains array of board data
-// VIEWS
-// renderBoard
-// showBoard
-// animatePiece
-// CONTROLLER METHODS
-// findSpotForCol
-// playPiece
-// checkForWin
-// handleClick
-
 class Game {
 	constructor(id, p1, p2, w = 7, h = 6) {
 		this.players = [p1, p2];
@@ -25,7 +6,7 @@ class Game {
 		this.height = h;
 		this.board = this.createBoardArray();
 		this.currPlayer = p1;
-		this.renderBoardHtml();
+		this.renderBoardMarkup();
 		this.gameOver = false;
 	}
 
@@ -41,72 +22,53 @@ class Game {
 		return boardArr;
 	}
 
-	renderBoardHtml() {
-		const games = document.getElementById('games');
+	renderBoardMarkup() {
+		// Returns markup for board and clickable areas
+		
+		const boardContainer = document.createElement('div');
+
 		const newTable = document.createElement('table');
 		newTable.setAttribute('id',this.boardId);
 		newTable.classList.add('board');
-		games.append(newTable);
-		
-		const board = document.getElementById(this.boardId);
-		
+
 		// make column tops (clickable area for adding a piece to that column)
 		const top = document.createElement('tr');
 		top.classList.add('column-top');
 		top.addEventListener('click', this.handleClick.bind(this));
-
 		for (let col = 0; col < this.width; col++) {
 			const headCell = document.createElement('td');
 			headCell.setAttribute('id', col);
 			top.append(headCell);
 		}
-
-		board.append(top);
+		newTable.append(top);
 
 		// make main part of board
 		for (let row = 0; row < this.height; row++) {
 			const tr = document.createElement('tr');
-
 			for (let col = 0; col < this.width; col++) {
 				const cell = document.createElement('td');
 				cell.setAttribute('id', this.getCoordinateId(row,col));
 				tr.append(cell);
 			}
-
-			board.append(tr);
+			newTable.append(tr);
 		}
 
+		// create button to remove own board
 		const deleteBtn = document.createElement('button');
 		deleteBtn.innerText="Remove this Board";
 		deleteBtn.classList.add('delete-btn');
 		deleteBtn.addEventListener('click', this.removeBoard.bind(this));
-		games.append(deleteBtn);
-	}
 
-	// Return id of spot
-	// Example: Row 2, Col 1 in Board 1 will return #board1-row2-col1
-	getCoordinateId(row, col){
-		return(`#${this.boardId}-row${row}-col${col}`)
-	}
-
-	// Return next available row for given column
-	getRowForCol(x) {
-		for (let y = this.height - 1; y >= 0; y--) {
-			if (!this.board[y][x]) {
-				return y;
-			}
-		}
-		return null;
+		boardContainer.append(newTable);
+		boardContainer.append(deleteBtn);
+		return boardContainer;
 	}
 
 	placeInTable(y, x) {
 		const piece = document.createElement('div');
 		piece.classList.add('piece');
 		piece.style.backgroundColor = this.currPlayer.color;
-		//piece.style.top = -50 * (y + 2); //this was in existing code. what does it do?
-
-		const spot = document.getElementById(this.getCoordinateId(y,x));
-		spot.append(piece);
+		document.getElementById(this.getCoordinateId(y,x)).append(piece);
 	}
 
 	endGame(msg) {
@@ -115,15 +77,15 @@ class Game {
 	}
 
 	handleClick(evt) {
-		// get x from ID of clicked cell
-		const col = +evt.target.id;
-		console.log(evt.target.id);
+		// on click, place new piece. end game if win or tie. otherwise swap to other player's turn.
 
-		// get next spot in column (if none, ignore click)
+		// get column from ID of clicked cell.
+		// assign next available spot in selected column
+		const col = +evt.target.id;
 		const row = this.getRowForCol(col);
 		if (row === null) {
 			alert('This column is full!');
-			//return;
+			return;
 		}
 
 		// place piece in board and add to HTML table
@@ -135,7 +97,7 @@ class Game {
 			return this.endGame(`${this.currPlayer.color} wins!`);
 		}
 
-		// check for tie
+		// check for tie. Determines if all elements in array are non-null.
 		if (this.board.every((row) => row.every((cell) => cell))) {
 			return this.endGame('Tie!');
 		}
@@ -168,24 +130,30 @@ class Game {
 	}
 
 	removeBoard() {
-		console.log('removing ' + this.boardId);
 		const thisBoard = document.getElementById(this.boardId);
 		thisBoard.nextElementSibling.remove() // removes delete button
 		thisBoard.remove();
 	}
+
+	getRowForCol(x) {
+		// Return next available row for given column
+		for (let y = this.height - 1; y >= 0; y--) {
+			if (!this.board[y][x]) {
+				return y;
+			}
+		}
+		return null;
+	}
+
+	getCoordinateId(row, col){
+	// Return formatted id of spot on board
+	// Example: Row 2, Col 1 in Board 1 will return #board1-row2-col1
+		return(`#${this.boardId}-row${row}-col${col}`)
+	}
 }
 
-// TODO: Input player name
 class Player {
 	constructor(color) {
 		this.color = color;
 	}
 }
-
-let boardCount=0;
-document.getElementById('start-game').addEventListener('click', () => {
-	boardCount += 1;
-	let p1 = new Player(document.getElementById('p1-color').value);
-	let p2 = new Player(document.getElementById('p2-color').value);
-	new Game(boardCount, p1, p2);
-});
