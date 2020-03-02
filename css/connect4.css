@@ -22,3 +22,7 @@
 .delete-btn {
 	color:red;
 }
+
+.game-message {
+	font-weight: bold;
+}

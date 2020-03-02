@@ -1,3 +1,8 @@
+class Player {
+	constructor(color) {
+		this.color = color;
+	}
+}
 class Game {
 	constructor(id, p1, p2, w = 7, h = 6) {
 		this.players = [p1, p2];
@@ -7,7 +12,6 @@ class Game {
 		this.board = this.createBoardArray();
 		this.currPlayer = p1;
 		this.renderBoardMarkup();
-		this.gameOver = false;
 	}
 
 	createBoardArray() {
@@ -26,6 +30,7 @@ class Game {
 		// Returns markup for board and clickable areas
 		
 		const boardContainer = document.createElement('div');
+		boardContainer.classList.add('board-container');
 
 		const newTable = document.createElement('table');
 		newTable.setAttribute('id',this.boardId);
@@ -55,12 +60,16 @@ class Game {
 
 		// create button to remove own board
 		const deleteBtn = document.createElement('button');
-		deleteBtn.innerText="Remove this Board";
+		deleteBtn.innerText = 'Remove this Board';
 		deleteBtn.classList.add('delete-btn');
 		deleteBtn.addEventListener('click', this.removeBoard.bind(this));
 
+		const gameMsgElement = document.createElement('span');
+		gameMsgElement.classList.add('game-message');
+
 		boardContainer.append(newTable);
 		boardContainer.append(deleteBtn);
+		boardContainer.append(gameMsgElement);
 		return boardContainer;
 	}
 
@@ -71,20 +80,16 @@ class Game {
 		document.getElementById(this.getCoordinateId(y,x)).append(piece);
 	}
 
-	endGame(msg) {
-		alert(msg);
-		document.getElementById('column-top').removeEventListener('click', this.handleClick);
-	}
-
 	handleClick(evt) {
 		// on click, place new piece. end game if win or tie. otherwise swap to other player's turn.
+		this.updateBoardMessage('');
 
 		// get column from ID of clicked cell.
 		// assign next available spot in selected column
 		const col = +evt.target.id;
 		const row = this.getRowForCol(col);
 		if (row === null) {
-			alert('This column is full!');
+			this.updateBoardMessage('Column is full!');
 			return;
 		}
 
@@ -94,12 +99,14 @@ class Game {
 
 		// check for win
 		if (this.checkForWin()) {
-			return this.endGame(`${this.currPlayer.color} wins!`);
+			this.disableBoard();
+			return this.updateBoardMessage(`${this.currPlayer.color} wins!`);
 		}
 
 		// check for tie. Determines if all elements in array are non-null.
 		if (this.board.every((row) => row.every((cell) => cell))) {
-			return this.endGame('Tie!');
+			this.disableBoard();
+			return this.updateBoardMessage('Tie!');
 		}
 
 		// switch players
@@ -129,12 +136,6 @@ class Game {
 		}
 	}
 
-	removeBoard() {
-		const thisBoard = document.getElementById(this.boardId);
-		thisBoard.nextElementSibling.remove() // removes delete button
-		thisBoard.remove();
-	}
-
 	getRowForCol(x) {
 		// Return next available row for given column
 		for (let y = this.height - 1; y >= 0; y--) {
@@ -145,15 +146,22 @@ class Game {
 		return null;
 	}
 
+	removeBoard() {
+		const boardToRemove = document.getElementById(this.boardId).parentElement;
+		boardToRemove.remove();
+	}
+
+	updateBoardMessage(msg) {
+		document.getElementById(this.boardId).nextElementSibling.nextElementSibling.innerText = msg;
+	}
+
+	disableBoard() {
+		document.querySelector(`#${this.boardId} .column-top`).remove();
+	}
+
 	getCoordinateId(row, col){
 	// Return formatted id of spot on board
 	// Example: Row 2, Col 1 in Board 1 will return #board1-row2-col1
 		return(`#${this.boardId}-row${row}-col${col}`)
-	}
-}
-
-class Player {
-	constructor(color) {
-		this.color = color;
 	}
 }

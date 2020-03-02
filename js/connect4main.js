@@ -1,5 +1,4 @@
-
-let boardCount=0;
+let boardCount=0; // running count used to generate unique id for each new game board
 
 document.getElementById('start-game').addEventListener('click', () => {
 	let p1 = new Player(document.getElementById('p1-color').value);
