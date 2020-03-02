@@ -5,163 +5,187 @@
  * board fills (tie)
  */
 
-const WIDTH = 7;
-const HEIGHT = 6;
-let currPlayer = 1; // active player: 1 or 2
-const board = []; // array of rows, each row is array of cells  (board[y][x])
+// MODELS
+// Game.board: contains array of board data
+// VIEWS
+// renderBoard
+// showBoard
+// animatePiece
+// CONTROLLER METHODS
+// findSpotForCol
+// playPiece
+// checkForWin
+// handleClick
 
-makeBoard();
-makeHtmlBoard();
+class Game {
+	constructor(id, p1, p2, w = 7, h = 6) {
+		this.players = [p1, p2];
+		this.boardId = 'board'+id;
+		this.width = w;
+		this.height = h;
+		this.board = this.createBoardArray();
+		this.currPlayer = p1;
+		this.renderBoardHtml();
+		this.gameOver = false;
+	}
 
-// board = array of rows, each row is array of cells  (board[y][x])
-function makeBoard() {
-	for (i = 0; i < HEIGHT; i++) {
-		board[i] = [];
-		for (j = 0; j < WIDTH; j++) {
-			board[i][j] = null;
+	createBoardArray() {
+		// Returns empty 2d array of Game width and height
+		const boardArr = [];
+		for (let row = 0; row < this.height; row++) {
+			boardArr[row] = [];
+			for (let col = 0; col < this.width; col++){
+				boardArr[row][col]=null;
+			}
 		}
+		return boardArr;
 	}
-}
 
-// makeHtmlBoard: make HTML table and row of column tops.
-function makeHtmlBoard() {
-	const htmlBoard = document.getElementById('board');
+	renderBoardHtml() {
+		const games = document.getElementById('games');
+		const newTable = document.createElement('table');
+		newTable.setAttribute('id',this.boardId);
+		newTable.classList.add('board');
+		games.append(newTable);
+		
+		const board = document.getElementById(this.boardId);
+		
+		// make column tops (clickable area for adding a piece to that column)
+		const top = document.createElement('tr');
+		top.classList.add('column-top');
+		top.addEventListener('click', this.handleClick.bind(this));
 
-	// create row of column tops with click handler
-	const top = document.createElement('tr');
-	top.setAttribute('id', 'column-top');
-	top.addEventListener('click', handleClick);
-
-	// append column tops based on board width
-	for (let x = 0; x < WIDTH; x++) {
-		const headCell = document.createElement('td');
-		headCell.setAttribute('id', x);
-		top.append(headCell);
-	}
-	htmlBoard.append(top);
-
-	// create all game spots with xy coordinates as attributes
-	for (let y = 0; y < HEIGHT; y++) {
-		const row = document.createElement('tr');
-		for (let x = 0; x < WIDTH; x++) {
-			const cell = document.createElement('td');
-			cell.setAttribute('id', `${y}-${x}`);
-			row.append(cell);
+		for (let col = 0; col < this.width; col++) {
+			const headCell = document.createElement('td');
+			headCell.setAttribute('id', col);
+			top.append(headCell);
 		}
-		htmlBoard.append(row);
-	}
-}
 
-/** findSpotForCol: given column x, return top empty y (null if filled) */
-function findSpotForCol(x) {
-	for (let row = HEIGHT - 1; row >= 0; row--) {
-		let spot = document.getElementById(`${row}-${x}`);
-		if (spot.innerHTML === '') {
-			return row;
+		board.append(top);
+
+		// make main part of board
+		for (let row = 0; row < this.height; row++) {
+			const tr = document.createElement('tr');
+
+			for (let col = 0; col < this.width; col++) {
+				const cell = document.createElement('td');
+				cell.setAttribute('id', this.getCoordinateId(row,col));
+				tr.append(cell);
+			}
+
+			board.append(tr);
 		}
-	}
-	return null;
-}
 
-/** placeInTable: update DOM to place piece into HTML table of board */
-function placeInTable(y, x) {
-	const piece = document.createElement('div');
-	if (currPlayer === 1) piece.setAttribute('class', 'piece p1');
-	else piece.setAttribute('class', 'piece p2');
-	document.getElementById(`${y}-${x}`).append(piece);
-}
-
-/** endGame: announce game end */
-function endGame(msg) {
-	alert(msg);
-	// prevent any more player actions
-	document
-		.getElementById('column-top')
-		.removeEventListener('click', handleClick);
-}
-
-/** handleClick: handle click of column top to play piece */
-function handleClick(evt) {
-	// get x from ID of clicked cell
-	const x = +evt.target.id;
-
-	// get next spot in column (if none, ignore click)
-	const y = findSpotForCol(x);
-	if (y === null) {
-		return;
+		const deleteBtn = document.createElement('button');
+		deleteBtn.innerText="Remove this Board";
+		deleteBtn.classList.add('delete-btn');
+		deleteBtn.addEventListener('click', this.removeBoard.bind(this));
+		games.append(deleteBtn);
 	}
 
-	// place piece in board and add to HTML table
-	placeInTable(y, x);
-
-	// add line to update in-memory board
-	board[y][x] = currPlayer;
-
-	// check for win
-	if (checkForWin()) {
-		return endGame(`Player ${currPlayer} won!`);
+	// Return id of spot
+	// Example: Row 2, Col 1 in Board 1 will return #board1-row2-col1
+	getCoordinateId(row, col){
+		return(`#${this.boardId}-row${row}-col${col}`)
 	}
 
-	// Check if all cells in board are filled
-	function isRowFull(arr) {
-		return arr.every(col => col !== null);
-	}
-	if (board.every(row => isRowFull(row))) {
-		return endGame('Tie Game!');
-	}
-
-	// switch players
-	currPlayer = currPlayer === 1 ? 2 : 1;
-}
-
-/** checkForWin: check board cell-by-cell for "does a win start here?" */
-function checkForWin() {
-	function _win(cells) {
-		// Check four cells to see if they're all color of current player
-		//  - cells: list of four (y, x) cells
-		//  - returns true if all are legal coordinates & all match currPlayer
-
-		return cells.every(
-			([y, x]) =>
-				y >= 0 &&
-				y < HEIGHT &&
-				x >= 0 &&
-				x < WIDTH &&
-				board[y][x] === currPlayer
-		);
+	// Return next available row for given column
+	getRowForCol(x) {
+		for (let y = this.height - 1; y >= 0; y--) {
+			if (!this.board[y][x]) {
+				return y;
+			}
+		}
+		return null;
 	}
 
-	for (let y = 0; y < HEIGHT; y++) {
-		for (let x = 0; x < WIDTH; x++) {
-			const horiz = [
-				[y, x],
-				[y, x + 1],
-				[y, x + 2],
-				[y, x + 3]
-			];
-			const vert = [
-				[y, x],
-				[y + 1, x],
-				[y + 2, x],
-				[y + 3, x]
-			];
-			const diagDR = [
-				[y, x],
-				[y + 1, x + 1],
-				[y + 2, x + 2],
-				[y + 3, x + 3]
-			];
-			const diagDL = [
-				[y, x],
-				[y + 1, x - 1],
-				[y + 2, x - 2],
-				[y + 3, x - 3]
-			];
+	placeInTable(y, x) {
+		const piece = document.createElement('div');
+		piece.classList.add('piece');
+		piece.style.backgroundColor = this.currPlayer.color;
+		//piece.style.top = -50 * (y + 2); //this was in existing code. what does it do?
 
-			if (_win(horiz) || _win(vert) || _win(diagDR) || _win(diagDL)) {
-				return true;
+		const spot = document.getElementById(this.getCoordinateId(y,x));
+		spot.append(piece);
+	}
+
+	endGame(msg) {
+		alert(msg);
+		document.getElementById('column-top').removeEventListener('click', this.handleClick);
+	}
+
+	handleClick(evt) {
+		// get x from ID of clicked cell
+		const col = +evt.target.id;
+		console.log(evt.target.id);
+
+		// get next spot in column (if none, ignore click)
+		const row = this.getRowForCol(col);
+		if (row === null) {
+			alert('This column is full!');
+			//return;
+		}
+
+		// place piece in board and add to HTML table
+		this.board[row][col] = this.currPlayer;
+		this.placeInTable(row, col);
+
+		// check for win
+		if (this.checkForWin()) {
+			return this.endGame(`${this.currPlayer.color} wins!`);
+		}
+
+		// check for tie
+		if (this.board.every((row) => row.every((cell) => cell))) {
+			return this.endGame('Tie!');
+		}
+
+		// switch players
+		this.currPlayer = this.currPlayer === this.players[0] ? this.players[1] : this.players[0];
+	}
+
+	checkForWin() {
+		const _win = (cells) =>
+			cells.every(
+				([y, x]) => y >= 0 && y < this.height && x >= 0 && x < this.width && this.board[y][x] === this.currPlayer
+			);
+
+		for (let y = 0; y < this.height; y++) {
+			for (let x = 0; x < this.width; x++) {
+				// get "check list" of 4 cells (starting here) for each of the different
+				// ways to win
+				const horiz = [[y, x], [y, x + 1], [y, x + 2], [y, x + 3]];
+				const vert = [[y, x], [y + 1, x], [y + 2, x], [y + 3, x]];
+				const diagDR = [[y, x], [y + 1, x + 1], [y + 2, x + 2], [y + 3, x + 3]];
+				const diagDL = [[y, x], [y + 1, x - 1], [y + 2, x - 2], [y + 3, x - 3]];
+
+				// find winner (only checking each win-possibility as needed)
+				if (_win(horiz) || _win(vert) || _win(diagDR) || _win(diagDL)) {
+					return true;
+				}
 			}
 		}
 	}
+
+	removeBoard() {
+		console.log('removing ' + this.boardId);
+		const thisBoard = document.getElementById(this.boardId);
+		thisBoard.nextElementSibling.remove() // removes delete button
+		thisBoard.remove();
+	}
 }
 
+// TODO: Input player name
+class Player {
+	constructor(color) {
+		this.color = color;
+	}
+}
+
+let boardCount=0;
+document.getElementById('start-game').addEventListener('click', () => {
+	boardCount += 1;
+	let p1 = new Player(document.getElementById('p1-color').value);
+	let p2 = new Player(document.getElementById('p2-color').value);
+	new Game(boardCount, p1, p2);
+});
