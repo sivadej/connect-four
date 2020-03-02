@@ -11,7 +11,6 @@ class Game {
 		this.height = h;
 		this.board = this.createBoardArray();
 		this.currPlayer = p1;
-		this.renderBoardMarkup();
 	}
 
 	createBoardArray() {
@@ -74,6 +73,7 @@ class Game {
 	}
 
 	placeInTable(y, x) {
+		// inserts div styled as game piece into HTML board at given coordinates
 		const piece = document.createElement('div');
 		piece.classList.add('piece');
 		piece.style.backgroundColor = this.currPlayer.color;
